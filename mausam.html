@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Weather App</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        transition: background 0.5s;
+        background: linear-gradient(to bottom, #87ceeb, #e0f7fa);
+    }
+
+    .weather-container {
+        background: rgba(255,255,255,0.9);
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        width: 350px;
+        transition: background 0.5s;
+    }
+
+    input, button {
+        padding: 10px;
+        margin: 8px 0;
+        width: 80%;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+    }
+
+    button {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        background-color: #45a049;
+    }
+
+    .weather-icon {
+        width: 100px;
+        height: 100px;
+        margin: 10px 0;
+    }
+
+    .toggle-light {
+        margin-top: 15px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #555;
+    }
+
+    .dark-mode {
+        background: linear-gradient(to bottom, #2c3e50, #34495e);
+        color: white;
+    }
+
+    .dark-mode .weather-container {
+        background: rgba(44, 62, 80, 0.9);
+    }
+</style>
+</head>
+<body>
+
+<div class="weather-container">
+    <h1>Weather App</h1>
+
+    <!-- City search -->
+    <input type="text" id="cityInput" placeholder="Enter city name">
+    <button id="searchBtn">Search</button>
+    <button id="currentBtn">Current Location Weather</button>
+
+    <div id="weatherDisplay">
+        <img src="" alt="Weather Icon" class="weather-icon" id="weatherIcon">
+        <p id="location">Location: ...</p>
+        <p id="temperature">Temperature: ...</p>
+        <p id="description">Description: ...</p>
+    </div>
+
+    <div class="toggle-light" id="toggleLight">Toggle Light/Dark Mode</div>
+</div>
+
+<script>
+    const mansoon = '4dee9b64582d10a7870072df8c42e8db'; // Updated API key with new name
+    const weatherIconEl = document.getElementById('weatherIcon');
+    const bodyEl = document.body;
+
+    function getWeatherIcon(main) {
+        switch(main.toLowerCase()) {
+            case 'clouds': return 'https://img.icons8.com/emoji/96/000000/cloud-emoji.png';
+            case 'clear': return 'https://img.icons8.com/emoji/96/000000/sun-emoji.png';
+            case 'rain': return 'https://img.icons8.com/emoji/96/000000/cloud-with-rain-emoji.png';
+            case 'snow': return 'https://img.icons8.com/emoji/96/000000/snowflake-emoji.png';
+            case 'thunderstorm': return 'https://img.icons8.com/emoji/96/000000/cloud-with-lightning-emoji.png';
+            default: return 'https://img.icons8.com/emoji/96/000000/cloud-emoji.png';
+        }
+    }
+
+    async function fetchWeather(lat, lon) {
+        let url;
+        if (lat && lon) {
+            url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${mansoon}&units=metric`;
+        } else {
+            const cityInput = document.getElementById('cityInput').value.trim();
+            if (!cityInput) return alert("Please enter a city name");
+            const city = encodeURIComponent(cityInput);
+            url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${mansoon}&units=metric`;
+        }
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('City not found');
+            const data = await response.json();
+
+            document.getElementById('location').innerText = `Location: ${data.name}, ${data.sys.country}`;
+            document.getElementById('temperature').innerText = `Temperature: ${data.main.temp} °C`;
+            document.getElementById('description').innerText = `Description: ${data.weather[0].description}`;
+
+            // Update weather icon
+            weatherIconEl.src = getWeatherIcon(data.weather[0].main);
+
+            // Change background based on weather
+            switch(data.weather[0].main.toLowerCase()) {
+                case 'clouds':
+                    bodyEl.style.background = 'linear-gradient(to bottom, #d7d2cc, #304352)';
+                    break;
+                case 'rain':
+                    bodyEl.style.background = 'linear-gradient(to bottom, #4e54c8, #8f94fb)';
+                    break;
+                case 'clear':
+                    bodyEl.style.background = 'linear-gradient(to bottom, #fbc2eb, #a6c1ee)';
+                    break;
+                case 'snow':
+                    bodyEl.style.background = 'linear-gradient(to bottom, #e0eafc, #cfdef3)';
+                    break;
+                case 'thunderstorm':
+                    bodyEl.style.background = 'linear-gradient(to bottom, #373b44, #4286f4)';
+                    break;
+                default:
+                    bodyEl.style.background = 'linear-gradient(to bottom, #87ceeb, #e0f7fa)';
+            }
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // Current location fetch
+    function fetchCurrentLocationWeather() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    fetchWeather(lat, lon);
+                },
+                error => alert('Unable to get current location')
+            );
+        } else {
+            alert('Geolocation not supported by your browser.');
+        }
+    }
+
+    // Event listeners
+    document.getElementById('searchBtn').addEventListener('click', () => fetchWeather());
+    document.getElementById('currentBtn').addEventListener('click', fetchCurrentLocationWeather);
+    document.getElementById('toggleLight').addEventListener('click', () => bodyEl.classList.toggle('dark-mode'));
+</script>
+
+</body>
+</html>
